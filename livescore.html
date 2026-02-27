@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiveScore — Football Scores & Stats</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e1217;
+  --surface: #161b22;
+  --card: #1c2330;
+  --border: #21262d;
+  --accent: #00c853;
+  --accent2: #1565c0;
+  --red: #f44336;
+  --yellow: #ffc107;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --hover: #21262d;
+  --header: #0d1117;
+  --live: #ff1744;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text); font-family:'Inter',sans-serif; font-size:13px; min-height:100vh; }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:#30363d; border-radius:3px; }
+
+/* HEADER */
+.header {
+  background:var(--header);
+  border-bottom:1px solid var(--border);
+  position:sticky; top:0; z-index:200;
+}
+.header-top {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 16px; height:52px; max-width:1400px; margin:0 auto;
+}
+.logo { display:flex; align-items:center; gap:10px; }
+.logo-ball {
+  width:32px; height:32px; background:var(--accent);
+  border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:16px; box-shadow:0 0 16px rgba(0,200,83,0.5);
+  animation: glow 2s ease-in-out infinite alternate;
+}
+@keyframes glow { from{box-shadow:0 0 8px rgba(0,200,83,0.4);} to{box-shadow:0 0 20px rgba(0,200,83,0.8);} }
+.logo-text { font-size:18px; font-weight:800; letter-spacing:-0.5px; }
+.logo-text span { color:var(--accent); }
+.header-right { display:flex; align-items:center; gap:12px; }
+.refresh-info { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+.live-dot { width:7px; height:7px; background:var(--live); border-radius:50%; animation:blink 1.2s infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+.btn-refresh {
+  background:rgba(0,200,83,0.1); border:1px solid rgba(0,200,83,0.25);
+  color:var(--accent); padding:5px 12px; border-radius:6px;
+  cursor:pointer; font-size:11px; font-weight:600; font-family:'Inter',sans-serif;
+  transition:all 0.2s; letter-spacing:0.5px;
+}
+.btn-refresh:hover { background:rgba(0,200,83,0.2); }
+.btn-refresh:disabled { opacity:0.4; cursor:default; }
+
+/* NAV TABS */
+.nav-tabs {
+  display:flex; gap:0; overflow-x:auto; padding:0 16px;
+  max-width:1400px; margin:0 auto;
+  border-top:1px solid var(--border);
+  scrollbar-width:none;
+}
+.nav-tabs::-webkit-scrollbar { display:none; }
+.nav-tab {
+  padding:10px 16px; cursor:pointer; font-size:12px; font-weight:600;
+  color:var(--muted); border-bottom:2px solid transparent;
+  white-space:nowrap; transition:all 0.15s; letter-spacing:0.3px;
+  background:none; border-top:none; border-left:none; border-right:none; font-family:'Inter',sans-serif;
+}
+.nav-tab:hover { color:var(--text); }
+.nav-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+
+/* LAYOUT */
+.layout { display:flex; max-width:1400px; margin:0 auto; gap:0; }
+
+/* SIDEBAR */
+.sidebar {
+  width:220px; flex-shrink:0; border-right:1px solid var(--border);
+  padding:12px 0; position:sticky; top:89px; height:calc(100vh - 89px);
+  overflow-y:auto;
+}
+.sidebar-section { margin-bottom:4px; }
+.sidebar-title {
+  padding:8px 16px; font-size:10px; font-weight:700;
+  color:var(--muted); letter-spacing:1px; text-transform:uppercase;
+}
+.sidebar-item {
+  padding:8px 16px; cursor:pointer; display:flex; align-items:center;
+  gap:10px; transition:background 0.1s; border-radius:0;
+}
+.sidebar-item:hover { background:var(--hover); }
+.sidebar-item.active { background:rgba(0,200,83,0.08); color:var(--accent); }
+.sidebar-item .league-flag { font-size:15px; width:20px; text-align:center; }
+.sidebar-item .league-name { font-size:12px; font-weight:500; }
+.sidebar-item .league-count {
+  margin-left:auto; background:var(--border); padding:1px 6px;
+  border-radius:10px; font-size:10px; color:var(--muted);
+}
+
+/* MAIN */
+.main { flex:1; min-width:0; }
+
+/* LEAGUE BLOCK */
+.league-block { border-bottom:1px solid var(--border); }
+.league-header {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 16px; background:var(--surface);
+  position:sticky; top:89px; z-index:10;
+  cursor:pointer; user-select:none;
+}
+.league-header:hover { background:var(--hover); }
+.league-header-flag { font-size:16px; }
+.league-header-name { font-size:12px; font-weight:700; letter-spacing:0.3px; }
+.league-header-sub { font-size:10px; color:var(--muted); margin-left:4px; }
+.league-header-toggle { margin-left:auto; color:var(--muted); font-size:10px; }
+.match-count-badge {
+  margin-left:6px; background:var(--border); padding:1px 7px;
+  border-radius:10px; font-size:10px; color:var(--muted);
+}
+
+/* MATCH ROW */
+.match-row {
+  display:grid;
+  grid-template-columns: 80px 1fr 60px 1fr 90px;
+  align-items:center; padding:0 16px; height:44px;
+  border-bottom:1px solid rgba(33,38,45,0.5);
+  cursor:pointer; transition:background 0.1s;
+  text-decoration:none; color:inherit;
+}
+.match-row:hover { background:var(--hover); }
+.match-row.live-match { background:rgba(255,23,68,0.03); }
+
+.match-time {
+  font-size:11px; font-weight:600; color:var(--muted);
+  display:flex; flex-direction:column; align-items:flex-start; gap:1px;
+}
+.match-time .live-label {
+  color:var(--live); font-size:10px; font-weight:700;
+  letter-spacing:0.5px;
+}
+.match-time .time-val { color:var(--muted); }
+.match-time .status-ft { color:var(--muted); font-size:10px; }
+
+.team-block { display:flex; align-items:center; gap:8px; }
+.team-block.away { flex-direction:row-reverse; text-align:right; }
+.team-initial {
+  width:26px; height:26px; border-radius:50%; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:9px; font-weight:800; color:#fff; letter-spacing:0.5px;
+}
+.team-name-text { font-size:12px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px; }
+.team-name-text.winner { font-weight:700; color:var(--text); }
+
+.score-block {
+  text-align:center; display:flex; flex-direction:column; align-items:center; gap:2px;
+}
+.score-main {
+  font-size:15px; font-weight:800; letter-spacing:2px;
+  display:flex; gap:6px; align-items:center;
+}
+.score-main .s { min-width:16px; text-align:center; }
+.score-main .dash { color:var(--muted); font-weight:300; }
+.score-main.live-score { color:var(--live); }
+.score-sub { font-size:9px; color:var(--muted); }
+
+.match-meta { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+.match-meta .meta-tag {
+  font-size:9px; padding:1px 5px; border-radius:3px;
+  background:var(--border); color:var(--muted); letter-spacing:0.3px;
+}
+.match-meta .meta-live {
+  background:rgba(255,23,68,0.15); color:var(--live);
+}
+.match-meta .meta-soon {
+  background:rgba(255,193,7,0.12); color:var(--yellow);
+}
+
+/* STANDINGS TABLE */
+.standings-wrapper { padding:16px; }
+.standings-league-title {
+  font-size:13px; font-weight:700; margin-bottom:12px;
+  display:flex; align-items:center; gap:8px;
+}
+.standings-table-wrap {
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:8px; overflow:hidden; margin-bottom:20px;
+}
+table.stable { width:100%; border-collapse:collapse; }
+table.stable thead tr { background:var(--card); }
+table.stable th {
+  padding:8px 10px; font-size:10px; font-weight:700;
+  color:var(--muted); text-transform:uppercase; letter-spacing:0.8px;
+  text-align:left; border-bottom:1px solid var(--border);
+}
+table.stable th.num { text-align:center; }
+table.stable tbody tr {
+  border-bottom:1px solid rgba(33,38,45,0.6);
+  transition:background 0.1s;
+}
+table.stable tbody tr:hover { background:var(--hover); }
+table.stable tbody tr:last-child { border-bottom:none; }
+table.stable td { padding:9px 10px; font-size:12px; }
+table.stable td.num { text-align:center; color:var(--muted); }
+.stable .rank-col { width:36px; }
+.stable .rank-num {
+  width:22px; height:22px; border-radius:4px;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; background:var(--border); color:var(--muted);
+}
+.stable .rank-1 { background:rgba(255,193,7,0.2); color:var(--yellow); }
+.stable .rank-2 { background:rgba(192,192,192,0.15); color:#aaa; }
+.stable .rank-3 { background:rgba(180,120,60,0.2); color:#cd7f32; }
+.stable .zone-cl { border-left:3px solid var(--accent); }
+.stable .zone-el { border-left:3px solid #2979ff; }
+.stable .zone-rel { border-left:3px solid var(--red); }
+.stable .team-cell { display:flex; align-items:center; gap:8px; }
+.stable .t-init {
+  width:24px; height:24px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:8px; font-weight:800; color:#fff; flex-shrink:0;
+}
+.stable .t-name { font-weight:500; }
+.stable .pts-col { font-weight:800; font-size:13px; color:var(--text); text-align:center; }
+.form-dots { display:flex; gap:3px; justify-content:center; }
+.form-dot {
+  width:15px; height:15px; border-radius:3px;
+  font-size:9px; font-weight:700; color:#fff;
+  display:flex; align-items:center; justify-content:center;
+}
+.form-W { background:#2ea043; }
+.form-D { background:#58a6ff44; color:#58a6ff; }
+.form-L { background:rgba(244,67,54,0.8); }
+
+/* ZONE LEGEND */
+.zone-legend { display:flex; gap:16px; margin-bottom:12px; flex-wrap:wrap; }
+.zone-legend-item { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--muted); }
+.zone-box { width:10px; height:10px; border-radius:2px; }
+
+/* LOADING */
+.loading-overlay {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  height:300px; gap:16px;
+}
+.spinner {
+  width:40px; height:40px; border-radius:50%;
+  border:3px solid var(--border); border-top-color:var(--accent);
+  animation:spin 0.7s linear infinite;
+}
+@keyframes spin { to{transform:rotate(360deg);} }
+.loading-text { font-size:12px; color:var(--muted); letter-spacing:1px; }
+
+/* TOP SCORERS / EMPTY */
+.empty-state { padding:40px; text-align:center; color:var(--muted); font-size:12px; }
+
+/* DATE BAR */
+.date-bar {
+  display:flex; align-items:center; gap:6px; padding:10px 16px;
+  background:var(--surface); border-bottom:1px solid var(--border);
+  overflow-x:auto; scrollbar-width:none;
+}
+.date-bar::-webkit-scrollbar { display:none; }
+.date-btn {
+  padding:5px 12px; border-radius:6px; cursor:pointer;
+  font-size:11px; font-weight:600; white-space:nowrap;
+  background:none; border:1px solid var(--border); color:var(--muted);
+  font-family:'Inter',sans-serif; transition:all 0.15s;
+}
+.date-btn:hover { border-color:var(--accent); color:var(--text); }
+.date-btn.active { background:var(--accent); color:#000; border-color:var(--accent); }
+
+/* RESPONSIVE */
+@media(max-width:900px) {
+  .sidebar { display:none; }
+  .match-row { grid-template-columns: 64px 1fr 56px 1fr 72px; }
+}
+@media(max-width:600px) {
+  .match-row { grid-template-columns: 54px 1fr 50px 1fr; }
+  .match-meta { display:none; }
+  .team-name-text { max-width:90px; }
+}
+
+/* FADE IN */
+@keyframes fadeUp { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+.fade-up { animation:fadeUp 0.3s ease both; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">
+      <div class="logo-ball">⚽</div>
+      <div class="logo-text">Live<span>Score</span></div>
+    </div>
+    <div class="header-right">
+      <div class="refresh-info">
+        <div class="live-dot"></div>
+        <span id="refresh-label">Auto-refresh in <strong id="countdown">60</strong>s</span>
+      </div>
+      <button class="btn-refresh" id="btn-refresh" onclick="refreshAll()">↻ Refresh</button>
+    </div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchMainTab('scores', this)">Scores</button>
+    <button class="nav-tab" onclick="switchMainTab('standings', this)">Standings</button>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Leagues</div>
+      <div class="sidebar-item active" onclick="filterLeague('all', this)">
+        <span class="league-flag">🌍</span>
+        <span class="league-name">All Leagues</span>
+      </div>
+      <div class="sidebar-item" onclick="filterLeague('epl', this)">
+        <span class="league-flag">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span>
+        <span class="league-name">Premier League</span>
+      </div>
+      <div class="sidebar-item" onclick="filterLeague('la_liga', this)">
+        <span class="league-flag">🇪🇸</span>
+        <span class="league-name">La Liga</span>
+      </div>
+      <div class="sidebar-item" onclick="filterLeague('bundesliga', this)">
+        <span class="league-flag">🇩🇪</span>
+        <span class="league-name">Bundesliga</span>
+      </div>
+      <div class="sidebar-item" onclick="filterLeague('serie_a', this)">
+        <span class="league-flag">🇮🇹</span>
+        <span class="league-name">Serie A</span>
+      </div>
+      <div class="sidebar-item" onclick="filterLeague('champions_league', this)">
+        <span class="league-flag">⭐</span>
+        <span class="league-name">Champions League</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="main-content">
+    <!-- Scores panel -->
+    <div id="panel-scores">
+      <div class="date-bar">
+        <button class="date-btn" onclick="setDateFilter('past', this)">Past Results</button>
+        <button class="date-btn active" onclick="setDateFilter('all', this)">All Matches</button>
+        <button class="date-btn" onclick="setDateFilter('upcoming', this)">Upcoming</button>
+      </div>
+      <div id="scores-content"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">LOADING LIVE DATA</div></div></div>
+    </div>
+    <!-- Standings panel -->
+    <div id="panel-standings" style="display:none">
+      <div id="standings-content"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">LOADING STANDINGS</div></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const LEAGUES = {
+  epl: {
+    name: "Premier League", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿", country: "England",
+    games: [
+      {home:"Aston Villa",hA:"AVL",away:"Leeds United",aA:"LEE",hs:1,as:1,status:"FT",time:"Feb 21"},
+      {home:"Brentford FC",hA:"BRE",away:"Brighton",aA:"BRI",hs:0,as:2,status:"FT",time:"Feb 21"},
+      {home:"Chelsea FC",hA:"CFC",away:"Burnley FC",aA:"BUR",hs:1,as:1,status:"FT",time:"Feb 21"},
+      {home:"West Ham",hA:"WHU",away:"Bournemouth",aA:"BOU",hs:0,as:0,status:"FT",time:"Feb 21"},
+      {home:"Man City",hA:"MCI",away:"Newcastle",aA:"NEW",hs:2,as:1,status:"FT",time:"Feb 21"},
+      {home:"Crystal Palace",hA:"CRY",away:"Wolves",aA:"WOL",hs:1,as:0,status:"FT",time:"Feb 22"},
+      {home:"Nott'm Forest",hA:"NFO",away:"Liverpool",aA:"LFC",hs:0,as:1,status:"FT",time:"Feb 22"},
+      {home:"Sunderland",hA:"SUN",away:"Fulham",aA:"FUL",hs:1,as:3,status:"FT",time:"Feb 22"},
+      {home:"Tottenham",hA:"TOT",away:"Arsenal",aA:"ARS",hs:1,as:4,status:"FT",time:"Feb 22"},
+      {home:"Everton",hA:"EVE",away:"Man United",aA:"MUN",hs:0,as:1,status:"FT",time:"Feb 23"},
+      {home:"Wolves",hA:"WOL",away:"Aston Villa",aA:"AVL",hs:null,as:null,status:"SCH",time:"20:00",probH:23.1,probD:26.2,probA:50.7,date:"Feb 27"},
+      {home:"Bournemouth",hA:"BOU",away:"Sunderland",aA:"SUN",hs:null,as:null,status:"SCH",time:"12:30",probH:53.7,probD:24.6,probA:21.7,date:"Feb 28"},
+      {home:"Burnley",hA:"BUR",away:"Brentford",aA:"BRE",hs:null,as:null,status:"SCH",time:"15:00",probH:20.3,probD:24.4,probA:55.3,date:"Feb 28"},
+      {home:"Liverpool",hA:"LFC",away:"West Ham",aA:"WHU",hs:null,as:null,status:"SCH",time:"15:00",probH:68.5,probD:17.5,probA:14.0,date:"Feb 28"},
+      {home:"Newcastle",hA:"NEW",away:"Everton",aA:"EVE",hs:null,as:null,status:"SCH",time:"15:00",probH:56.5,probD:23.6,probA:19.9,date:"Feb 28"},
+      {home:"Leeds United",hA:"LEE",away:"Man City",aA:"MCI",hs:null,as:null,status:"SCH",time:"17:30",probH:18.4,probD:21.5,probA:60.1,date:"Feb 28"},
+      {home:"Brighton",hA:"BRI",away:"Nott'm Forest",aA:"NFO",hs:null,as:null,status:"SCH",time:"14:00",probH:45.7,probD:26.6,probA:27.7,date:"Mar 1"},
+      {home:"Fulham",hA:"FUL",away:"Tottenham",aA:"TOT",hs:null,as:null,status:"SCH",time:"14:00",probH:45.2,probD:26.5,probA:28.3,date:"Mar 1"},
+      {home:"Man United",hA:"MUN",away:"Crystal Palace",aA:"CRY",hs:null,as:null,status:"SCH",time:"14:00",probH:62.1,probD:21.1,probA:16.8,date:"Mar 1"},
+      {home:"Arsenal",hA:"ARS",away:"Chelsea",aA:"CFC",hs:null,as:null,status:"SCH",time:"16:30",probH:59.2,probD:23.0,probA:17.8,date:"Mar 1"},
+    ],
+    standings: [
+      {r:1,team:"Arsenal",abbr:"ARS",w:18,d:7,l:3,gf:52,ga:24,pts:61,form:["W","W","D","W","W"]},
+      {r:2,team:"Man City",abbr:"MCI",w:17,d:5,l:5,gf:58,ga:30,pts:56,form:["W","W","L","W","W"]},
+      {r:3,team:"Aston Villa",abbr:"AVL",w:15,d:6,l:6,gf:48,ga:35,pts:51,form:["W","D","W","L","D"]},
+      {r:4,team:"Man United",abbr:"MUN",w:13,d:9,l:5,gf:42,ga:29,pts:48,form:["W","D","D","W","W"]},
+      {r:5,team:"Chelsea",abbr:"CFC",w:12,d:9,l:6,gf:44,ga:32,pts:45,form:["D","W","W","D","L"]},
+      {r:6,team:"Liverpool",abbr:"LFC",w:13,d:6,l:8,gf:46,ga:38,pts:45,form:["W","W","L","D","W"]},
+      {r:7,team:"Brentford",abbr:"BRE",w:12,d:4,l:11,gf:40,ga:44,pts:40,form:["W","L","W","D","W"]},
+      {r:8,team:"Bournemouth",abbr:"BOU",w:9,d:11,l:7,gf:35,ga:33,pts:38,form:["D","W","D","D","L"]},
+      {r:9,team:"Everton",abbr:"EVE",w:10,d:7,l:10,gf:34,ga:38,pts:37,form:["W","L","D","W","L"]},
+      {r:10,team:"Fulham",abbr:"FUL",w:11,d:4,l:12,gf:38,ga:42,pts:37,form:["W","L","L","W","W"]},
+      {r:11,team:"Newcastle",abbr:"NEW",w:10,d:6,l:11,gf:37,ga:40,pts:36,form:["L","W","D","L","W"]},
+      {r:12,team:"Sunderland",abbr:"SUN",w:9,d:9,l:9,gf:33,ga:35,pts:36,form:["D","W","L","D","W"]},
+      {r:13,team:"Crystal Palace",abbr:"CRY",w:9,d:8,l:10,gf:30,ga:36,pts:35,form:["W","D","L","W","D"]},
+      {r:14,team:"Brighton",abbr:"BRI",w:8,d:10,l:9,gf:36,ga:38,pts:34,form:["D","L","D","W","D"]},
+      {r:15,team:"Leeds United",abbr:"LEE",w:7,d:10,l:10,gf:28,ga:38,pts:31,form:["D","L","D","L","D"]},
+      {r:16,team:"Tottenham",abbr:"TOT",w:7,d:8,l:12,gf:30,ga:44,pts:29,form:["L","W","L","L","W"]},
+      {r:17,team:"Nott'm Forest",abbr:"NFO",w:7,d:6,l:14,gf:26,ga:46,pts:27,form:["L","L","D","W","L"]},
+      {r:18,team:"West Ham",abbr:"WHU",w:6,d:7,l:14,gf:25,ga:48,pts:25,form:["L","D","L","L","D"]},
+      {r:19,team:"Burnley",abbr:"BUR",w:4,d:7,l:16,gf:22,ga:56,pts:19,form:["L","D","L","L","L"]},
+      {r:20,team:"Wolves",abbr:"WOL",w:1,d:7,l:20,gf:14,ga:62,pts:10,form:["L","D","L","L","L"]},
+    ]
+  },
+  la_liga: {
+    name: "La Liga", flag: "🇪🇸", country: "Spain",
+    games: [
+      {home:"Athletic Bilbao",hA:"ATH",away:"Elche CF",aA:"ELC",hs:2,as:1,status:"FT",time:"Feb 20"},
+      {home:"Real Sociedad",hA:"RSO",away:"Real Oviedo",aA:"OVI",hs:3,as:3,status:"FT",time:"Feb 21"},
+      {home:"Real Betis",hA:"RBB",away:"Rayo Vallecano",aA:"RVC",hs:1,as:1,status:"FT",time:"Feb 21"},
+      {home:"CA Osasuna",hA:"OSA",away:"Real Madrid",aA:"RMA",hs:2,as:1,status:"FT",time:"Feb 21"},
+      {home:"Atletico Madrid",hA:"ATM",away:"Espanyol",aA:"ESP",hs:4,as:2,status:"FT",time:"Feb 21"},
+      {home:"Getafe CF",hA:"GET",away:"Sevilla FC",aA:"SEV",hs:0,as:1,status:"FT",time:"Feb 22"},
+      {home:"FC Barcelona",hA:"BAR",away:"Levante UD",aA:"LEV",hs:3,as:0,status:"FT",time:"Feb 22"},
+      {home:"RC Celta Vigo",hA:"RCC",away:"RCD Mallorca",aA:"MAL",hs:2,as:0,status:"FT",time:"Feb 22"},
+      {home:"Villarreal CF",hA:"VIL",away:"Valencia CF",aA:"VCF",hs:2,as:1,status:"FT",time:"Feb 22"},
+      {home:"Dep. Alaves",hA:"ALA",away:"Girona FC",aA:"GIR",hs:2,as:2,status:"FT",time:"Feb 23"},
+      {home:"Levante UD",hA:"LEV",away:"Dep. Alaves",aA:"ALA",hs:null,as:null,status:"SCH",time:"20:00",probH:35.9,probD:30.7,probA:33.4,date:"Feb 27"},
+      {home:"Rayo Vallecano",hA:"RVC",away:"Athletic Bilbao",aA:"ATH",hs:null,as:null,status:"SCH",time:"13:00",probH:39.2,probD:30.6,probA:30.2,date:"Feb 28"},
+      {home:"FC Barcelona",hA:"BAR",away:"Villarreal",aA:"VIL",hs:null,as:null,status:"SCH",time:"15:15",probH:74.2,probD:14.2,probA:11.6,date:"Feb 28"},
+      {home:"RCD Mallorca",hA:"MAL",away:"Real Sociedad",aA:"RSO",hs:null,as:null,status:"SCH",time:"17:30",probH:31.9,probD:29.3,probA:38.8,date:"Feb 28"},
+      {home:"Real Oviedo",hA:"OVI",away:"Atletico Madrid",aA:"ATM",hs:null,as:null,status:"SCH",time:"20:00",probH:17.4,probD:25.4,probA:57.2,date:"Feb 28"},
+      {home:"Real Madrid",hA:"RMA",away:"Getafe CF",aA:"GET",hs:null,as:null,status:"SCH",time:"20:00",probH:73.9,probD:17.0,probA:9.1,date:"Mar 2"},
+    ],
+    standings: [
+      {r:1,team:"FC Barcelona",abbr:"BAR",w:20,d:1,l:4,gf:62,ga:30,pts:61,form:["W","W","W","W","D"]},
+      {r:2,team:"Real Madrid",abbr:"RMA",w:19,d:3,l:3,gf:58,ga:28,pts:60,form:["L","W","W","W","W"]},
+      {r:3,team:"Villarreal CF",abbr:"VIL",w:16,d:3,l:6,gf:50,ga:32,pts:51,form:["W","W","W","L","W"]},
+      {r:4,team:"Atletico Madrid",abbr:"ATM",w:14,d:6,l:5,gf:48,ga:30,pts:48,form:["W","W","D","W","D"]},
+      {r:5,team:"Real Betis",abbr:"RBB",w:11,d:9,l:5,gf:40,ga:28,pts:42,form:["D","W","D","W","D"]},
+      {r:6,team:"RC Celta Vigo",abbr:"RCC",w:9,d:10,l:6,gf:34,ga:32,pts:37,form:["W","D","D","W","L"]},
+      {r:7,team:"Espanyol",abbr:"ESP",w:10,d:5,l:10,gf:36,ga:40,pts:35,form:["L","W","L","D","W"]},
+      {r:8,team:"Athletic Bilbao",abbr:"ATH",w:10,d:4,l:11,gf:34,ga:38,pts:34,form:["W","D","W","L","L"]},
+      {r:9,team:"CA Osasuna",abbr:"OSA",w:9,d:6,l:10,gf:32,ga:38,pts:33,form:["W","L","D","L","W"]},
+      {r:10,team:"Real Sociedad",abbr:"RSO",w:8,d:8,l:9,gf:30,ga:34,pts:32,form:["D","D","W","L","D"]},
+      {r:11,team:"Girona FC",abbr:"GIR",w:7,d:9,l:9,gf:30,ga:36,pts:30,form:["D","L","W","D","D"]},
+      {r:12,team:"Sevilla FC",abbr:"SEV",w:8,d:5,l:12,gf:28,ga:40,pts:29,form:["W","L","D","L","W"]},
+      {r:13,team:"Getafe CF",abbr:"GET",w:8,d:5,l:12,gf:26,ga:38,pts:29,form:["L","W","L","L","D"]},
+      {r:14,team:"Dep. Alaves",abbr:"ALA",w:7,d:6,l:12,gf:26,ga:42,pts:27,form:["D","L","W","L","L"]},
+      {r:15,team:"Rayo Vallecano",abbr:"RVC",w:6,d:8,l:10,gf:24,ga:36,pts:26,form:["D","L","D","W","D"]},
+      {r:16,team:"Valencia CF",abbr:"VCF",w:6,d:8,l:11,gf:24,ga:38,pts:26,form:["L","D","L","D","L"]},
+      {r:17,team:"Elche CF",abbr:"ELC",w:5,d:10,l:10,gf:22,ga:38,pts:25,form:["L","D","L","D","D"]},
+      {r:18,team:"RCD Mallorca",abbr:"MAL",w:6,d:6,l:13,gf:22,ga:44,pts:24,form:["L","L","W","L","D"]},
+      {r:19,team:"Levante UD",abbr:"LEV",w:4,d:6,l:15,gf:18,ga:50,pts:18,form:["L","L","D","L","L"]},
+      {r:20,team:"Real Oviedo",abbr:"OVI",w:3,d:8,l:13,gf:16,ga:48,pts:17,form:["D","L","D","L","L"]},
+    ]
+  },
+  bundesliga: {
+    name: "Bundesliga", flag: "🇩🇪", country: "Germany",
+    games: [
+      {home:"Bayern Munich",hA:"BMU",away:"Eintracht Frankfurt",aA:"SGE",hs:3,as:2,status:"FT",time:"Feb 21"},
+      {home:"VFL Wolfsburg",hA:"WOB",away:"FC Augsburg",aA:"FCA",hs:2,as:3,status:"FT",time:"Feb 21"},
+      {home:"Union Berlin",hA:"UNI",away:"Bayer Leverkusen",aA:"LEV",hs:1,as:0,status:"FT",time:"Feb 21"},
+      {home:"1. FC Cologne",hA:"KOE",away:"TSG Hoffenheim",aA:"TSG",hs:2,as:2,status:"FT",time:"Feb 21"},
+      {home:"RB Leipzig",hA:"RBL",away:"Borussia Dortmund",aA:"BVB",hs:2,as:2,status:"FT",time:"Feb 21"},
+      {home:"SC Freiburg",hA:"SCF",away:"B. Mönchengladbach",aA:"BMG",hs:2,as:1,status:"FT",time:"Feb 22"},
+      {home:"FC St. Pauli",hA:"STP",away:"Werder Bremen",aA:"SVW",hs:2,as:1,status:"FT",time:"Feb 22"},
+      {home:"1. FC Heidenheim",hA:"FCH",away:"VfB Stuttgart",aA:"VFB",hs:3,as:3,status:"FT",time:"Feb 22"},
+      {home:"Bayer Leverkusen",hA:"LEV",away:"FSV Mainz",aA:"M05",hs:null,as:null,status:"SCH",time:"14:30",probH:56.4,probD:23.2,probA:20.4,date:"Feb 28"},
+      {home:"Borussia Dortmund",hA:"BVB",away:"Bayern Munich",aA:"BMU",hs:null,as:null,status:"SCH",time:"17:30",probH:20.8,probD:19.8,probA:59.4,date:"Feb 28"},
+      {home:"Werder Bremen",hA:"SVW",away:"1. FC Heidenheim",aA:"FCH",hs:null,as:null,status:"SCH",time:"14:30",probH:53.6,probD:24.1,probA:22.3,date:"Feb 28"},
+      {home:"VfB Stuttgart",hA:"VFB",away:"VFL Wolfsburg",aA:"WOB",hs:null,as:null,status:"SCH",time:"14:30",probH:62.6,probD:19.6,probA:17.8,date:"Mar 1"},
+    ],
+    standings: [
+      {r:1,team:"Bayern Munich",abbr:"BMU",w:19,d:3,l:1,gf:64,ga:22,pts:60,form:["W","W","W","W","W"]},
+      {r:2,team:"Borussia Dortmund",abbr:"BVB",w:15,d:7,l:1,gf:52,ga:24,pts:52,form:["W","D","W","W","D"]},
+      {r:3,team:"TSG Hoffenheim",abbr:"TSG",w:14,d:4,l:5,gf:48,ga:28,pts:46,form:["D","W","W","L","W"]},
+      {r:4,team:"VfB Stuttgart",abbr:"VFB",w:13,d:4,l:6,gf:46,ga:30,pts:43,form:["D","W","W","L","W"]},
+      {r:5,team:"RB Leipzig",abbr:"RBL",w:12,d:5,l:6,gf:44,ga:32,pts:41,form:["D","W","D","W","L"]},
+      {r:6,team:"Bayer Leverkusen",abbr:"LEV",w:12,d:3,l:7,gf:42,ga:30,pts:39,form:["L","W","W","D","W"]},
+      {r:7,team:"SC Freiburg",abbr:"SCF",w:9,d:6,l:8,gf:34,ga:32,pts:33,form:["W","D","L","W","D"]},
+      {r:8,team:"Eintracht Frankfurt",abbr:"SGE",w:8,d:7,l:8,gf:32,ga:34,pts:31,form:["L","D","W","D","L"]},
+      {r:9,team:"Union Berlin",abbr:"UNI",w:7,d:7,l:9,gf:28,ga:34,pts:28,form:["W","D","L","D","D"]},
+      {r:10,team:"FC Augsburg",abbr:"FCA",w:8,d:4,l:11,gf:30,ga:38,pts:28,form:["W","L","D","L","W"]},
+      {r:11,team:"Hamburger SV",abbr:"HSV",w:6,d:8,l:8,gf:26,ga:32,pts:26,form:["D","L","W","D","L"]},
+      {r:12,team:"1. FC Cologne",abbr:"KOE",w:6,d:6,l:11,gf:24,ga:38,pts:24,form:["D","L","D","L","W"]},
+      {r:13,team:"FSV Mainz",abbr:"M05",w:5,d:7,l:11,gf:22,ga:38,pts:22,form:["D","L","W","L","D"]},
+      {r:14,team:"B. Mönchengladbach",abbr:"BMG",w:5,d:7,l:11,gf:22,ga:40,pts:22,form:["L","D","L","D","W"]},
+      {r:15,team:"VFL Wolfsburg",abbr:"WOB",w:5,d:5,l:13,gf:20,ga:44,pts:20,form:["L","D","L","L","W"]},
+      {r:16,team:"FC St. Pauli",abbr:"STP",w:5,d:5,l:13,gf:20,ga:46,pts:20,form:["W","L","D","L","L"]},
+      {r:17,team:"Werder Bremen",abbr:"SVW",w:4,d:7,l:12,gf:18,ga:44,pts:19,form:["L","D","L","L","D"]},
+      {r:18,team:"1. FC Heidenheim",abbr:"FCH",w:3,d:5,l:15,gf:16,ga:52,pts:14,form:["D","L","L","L","D"]},
+    ]
+  },
+  serie_a: {
+    name: "Serie A", flag: "🇮🇹", country: "Italy",
+    games: [
+      {home:"Juventus Turin",hA:"JUV",away:"Como 1907",aA:"COM",hs:0,as:2,status:"FT",time:"Feb 21"},
+      {home:"US Lecce",hA:"LEC",away:"Inter Milano",aA:"INT",hs:0,as:2,status:"FT",time:"Feb 21"},
+      {home:"Cagliari",hA:"CAG",away:"Lazio Rome",aA:"LAZ",hs:0,as:0,status:"FT",time:"Feb 21"},
+      {home:"Genoa CFC",hA:"GEN",away:"Torino FC",aA:"TOR",hs:3,as:0,status:"FT",time:"Feb 22"},
+      {home:"Atalanta BC",hA:"ATA",away:"SSC Napoli",aA:"NAP",hs:2,as:1,status:"FT",time:"Feb 22"},
+      {home:"AC Milan",hA:"ACM",away:"Parma Calcio",aA:"PAR",hs:0,as:1,status:"FT",time:"Feb 22"},
+      {home:"AS Roma",hA:"ROM",away:"US Cremonese",aA:"CRE",hs:3,as:0,status:"FT",time:"Feb 22"},
+      {home:"ACF Fiorentina",hA:"FIO",away:"Pisa SC",aA:"PIS",hs:1,as:0,status:"FT",time:"Feb 23"},
+      {home:"Bologna FC",hA:"BFC",away:"Udinese",aA:"UDI",hs:1,as:0,status:"FT",time:"Feb 23"},
+      {home:"Inter Milano",hA:"INT",away:"Genoa CFC",aA:"GEN",hs:null,as:null,status:"SCH",time:"19:45",probH:73.5,probD:16.7,probA:9.8,date:"Feb 28"},
+      {home:"AS Roma",hA:"ROM",away:"Juventus",aA:"JUV",hs:null,as:null,status:"SCH",time:"19:45",probH:36.6,probD:30.7,probA:32.7,date:"Mar 1"},
+      {home:"AC Milan",hA:"ACM",away:"Atalanta",aA:"ATA",hs:null,as:null,status:"SCH",time:"14:00",probH:64.2,probD:21.4,probA:14.4,date:"Mar 1"},
+    ],
+    standings: [
+      {r:1,team:"Inter Milano",abbr:"INT",w:21,d:1,l:4,gf:62,ga:28,pts:64,form:["W","W","W","W","L"]},
+      {r:2,team:"AC Milan",abbr:"ACM",w:15,d:9,l:2,gf:48,ga:22,pts:54,form:["D","L","W","D","W"]},
+      {r:3,team:"SSC Napoli",abbr:"NAP",w:15,d:5,l:6,gf:46,ga:28,pts:50,form:["L","W","W","D","W"]},
+      {r:4,team:"AS Roma",abbr:"ROM",w:16,d:2,l:8,gf:50,ga:32,pts:50,form:["W","W","D","L","W"]},
+      {r:5,team:"Juventus Turin",abbr:"JUV",w:13,d:7,l:6,gf:40,ga:26,pts:46,form:["L","W","D","W","L"]},
+      {r:6,team:"Como 1907",abbr:"COM",w:12,d:9,l:5,gf:38,ga:28,pts:45,form:["W","D","W","D","W"]},
+      {r:7,team:"Atalanta BC",abbr:"ATA",w:12,d:9,l:5,gf:44,ga:30,pts:45,form:["W","D","W","D","D"]},
+      {r:8,team:"Bologna FC",abbr:"BFC",w:10,d:6,l:10,gf:34,ga:36,pts:36,form:["W","D","L","W","D"]},
+      {r:9,team:"Sassuolo",abbr:"SAS",w:10,d:5,l:11,gf:32,ga:38,pts:35,form:["W","L","D","W","L"]},
+      {r:10,team:"Lazio Rome",abbr:"LAZ",w:8,d:10,l:8,gf:30,ga:32,pts:34,form:["D","L","W","D","D"]},
+      {r:11,team:"Udinese",abbr:"UDI",w:9,d:5,l:12,gf:28,ga:38,pts:32,form:["L","W","D","L","L"]},
+      {r:12,team:"Parma Calcio",abbr:"PAR",w:8,d:8,l:10,gf:28,ga:36,pts:32,form:["W","D","L","D","W"]},
+      {r:13,team:"Cagliari",abbr:"CAG",w:7,d:8,l:11,gf:26,ga:38,pts:29,form:["D","L","D","W","L"]},
+      {r:14,team:"Genoa CFC",abbr:"GEN",w:6,d:9,l:11,gf:24,ga:38,pts:27,form:["W","L","D","L","D"]},
+      {r:15,team:"Torino FC",abbr:"TOR",w:7,d:6,l:13,gf:26,ga:42,pts:27,form:["L","D","L","W","L"]},
+      {r:16,team:"ACF Fiorentina",abbr:"FIO",w:5,d:9,l:12,gf:22,ga:38,pts:24,form:["W","L","D","L","D"]},
+      {r:17,team:"US Cremonese",abbr:"CRE",w:5,d:9,l:12,gf:20,ga:40,pts:24,form:["L","D","W","L","L"]},
+      {r:18,team:"US Lecce",abbr:"LEC",w:6,d:6,l:14,gf:22,ga:46,pts:24,form:["L","L","W","D","L"]},
+      {r:19,team:"Pisa SC",abbr:"PIS",w:1,d:12,l:13,gf:14,ga:40,pts:15,form:["D","L","D","L","D"]},
+      {r:20,team:"Hellas Verona",abbr:"VER",w:2,d:9,l:15,gf:14,ga:48,pts:15,form:["L","D","L","D","L"]},
+    ]
+  },
+  champions_league: {
+    name: "Champions League", flag: "⭐", country: "Europe",
+    games: [
+      {home:"Club Brugge",hA:"BRU",away:"Atletico Madrid",aA:"ATM",hs:3,as:3,status:"FT",time:"Feb 18"},
+      {home:"Bodø/Glimt",hA:"BOG",away:"Inter Milano",aA:"INT",hs:3,as:1,status:"FT",time:"Feb 18"},
+      {home:"Atletico Madrid",hA:"ATM",away:"Club Brugge",aA:"BRU",hs:4,as:1,status:"FT",time:"Feb 24"},
+      {home:"Bayer Leverkusen",hA:"LEV",away:"Olympiacos",aA:"OLY",hs:0,as:0,status:"FT",time:"Feb 24"},
+      {home:"Newcastle Utd",hA:"NEW",away:"Qarabag FK",aA:"QAR",hs:3,as:2,status:"FT",time:"Feb 24"},
+      {home:"Inter Milano",hA:"INT",away:"Bodø/Glimt",aA:"BOG",hs:1,as:2,status:"FT",time:"Feb 24"},
+      {home:"Atalanta BC",hA:"ATA",away:"Borussia Dortmund",aA:"BVB",hs:4,as:1,status:"FT",time:"Feb 25"},
+      {home:"Juventus Turin",hA:"JUV",away:"Galatasaray",aA:"GAL",hs:3,as:2,status:"FT",time:"Feb 25"},
+      {home:"Paris Saint-Germain",hA:"PSG",away:"AS Monaco",aA:"ASM",hs:2,as:2,status:"FT",time:"Feb 25"},
+      {home:"Real Madrid",hA:"RMA",away:"SL Benfica",aA:"BEN",hs:2,as:1,status:"FT",time:"Feb 25"},
+    ],
+    standings: null
+  }
+};
+
+// ─── COLOURS ──────────────────────────────────────────────────────────────────
+const TC = {
+  ARS:"#ef0107",MCI:"#6cabdd",LFC:"#c8102e",MUN:"#da291c",CFC:"#034694",
+  AVL:"#7fc5e3",TOT:"#132257",NEW:"#241f20",BRI:"#0057b8",WHU:"#7a263a",
+  LEE:"#ffcd00",EVE:"#003399",BRE:"#e30613",FUL:"#cc0000",WOL:"#fdb913",
+  CRY:"#1b458f",NFO:"#dd0000",BOU:"#da291c",SUN:"#eb172b",BUR:"#6c1d45",
+  BAR:"#a50044",RMA:"#febe10",VIL:"#009f3f",ATM:"#cb3524",RBB:"#00954f",
+  RCC:"#4ba3e2",ESP:"#004d98",ATH:"#ee2523",OSA:"#d91a22",RSO:"#1047a9",
+  GIR:"#9c1c3c",SEV:"#d8262a",GET:"#005ca9",ALA:"#007ac3",RVC:"#d01317",
+  VCF:"#ee7623",ELC:"#006633",MAL:"#ef0707",LEV:"#c6173d",OVI:"#003d8f",
+  BMU:"#dc052d",BVB:"#fde100",TSG:"#1763ff",VFB:"#e32219",RBL:"#dd0741",
+  LEV2:"#e32219",SCF:"#e30613",SGE:"#e1000f",UNI:"#eb1c24",FCA:"#ba3733",
+  HSV:"#0034a5",KOE:"#ff0000",M05:"#d00027",BMG:"#00652d",WOB:"#009900",
+  STP:"#70412f",SVW:"#1d9053",FCH:"#e2001a",
+  INT:"#002f6c",ACM:"#fb090b",NAP:"#12a0c3",ROM:"#f5821f",JUV:"#111111",
+  COM:"#0057a8",ATA:"#1c3f7e",BFC:"#003882",SAS:"#1f5ca3",LAZ:"#74c1e8",
+  UDI:"#000000",PAR:"#1e3a6e",CAG:"#b8162f",GEN:"#c2272d",TOR:"#8b0000",
+  FIO:"#4b0082",CRE:"#cc0000",LEC:"#ffcc00",PIS:"#003366",VER:"#0a5c36",
+  ATM:"#cb3524",BRU:"#002060",BOG:"#ff4500",OLY:"#ff0000",NEW:"#241f20",
+  QAR:"#0057a8",ATA:"#1c3f7e",BVB:"#fde100",PSG:"#004170",ASM:"#ce1126",
+  GAL:"#f5a623",BEN:"#d40000",RMA:"#febe10",
+};
+
+function getColor(abbr) { return TC[abbr] || "#555"; }
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let activeLeague = "all";
+let dateFilter = "all";
+let mainTab = "scores";
+let countdown = 60;
+let countdownTimer;
+
+// ─── RENDER SCORES ────────────────────────────────────────────────────────────
+function renderScores() {
+  let html = "";
+  const leagueKeys = activeLeague === "all" ? Object.keys(LEAGUES) : [activeLeague];
+
+  leagueKeys.forEach(lk => {
+    const L = LEAGUES[lk];
+    let games = L.games;
+
+    if (dateFilter === "past") games = games.filter(g => g.status === "FT");
+    else if (dateFilter === "upcoming") games = games.filter(g => g.status === "SCH");
+
+    if (!games.length) return;
+
+    html += `<div class="league-block fade-up">
+      <div class="league-header">
+        <span class="league-header-flag">${L.flag}</span>
+        <span class="league-header-name">${L.name}</span>
+        <span class="league-header-sub">${L.country}</span>
+        <span class="match-count-badge">${games.length}</span>
+        <span class="league-header-toggle">▾</span>
+      </div>`;
+
+    games.forEach(g => {
+      const isLive = g.status === "LIVE";
+      const isFT = g.status === "FT";
+      const isSCH = g.status === "SCH";
+      const hWin = isFT && g.hs > g.as;
+      const aWin = isFT && g.as > g.hs;
+      const hColor = getColor(g.hA);
+      const aColor = getColor(g.aA);
+
+      html += `<div class="match-row ${isLive ? "live-match" : ""}">
+        <div class="match-time">
+          ${isLive ? `<span class="live-label">● LIVE</span>` : ""}
+          ${isFT ? `<span class="status-ft">FT</span><span class="time-val">${g.time}</span>` : ""}
+          ${isSCH ? `<span class="time-val">${g.time}</span><span style="font-size:10px;color:var(--muted)">${g.date||""}</span>` : ""}
+        </div>
+        <div class="team-block">
+          <div class="team-initial" style="background:${hColor}">${g.hA.slice(0,3)}</div>
+          <span class="team-name-text ${hWin ? "winner" : ""}">${g.home}</span>
+        </div>
+        <div class="score-block">
+          ${isSCH ? `<span style="font-size:11px;color:var(--muted);letter-spacing:1px;">vs</span>` :
+          `<div class="score-main ${isLive ? "live-score" : ""}">
+            <span class="s">${g.hs}</span>
+            <span class="dash">–</span>
+            <span class="s">${g.as}</span>
+          </div>`}
+          ${isSCH && g.probH ? `<div style="font-size:9px;color:var(--muted);margin-top:2px">${g.probH}% · ${g.probD}% · ${g.probA}%</div>` : ""}
+        </div>
+        <div class="team-block away">
+          <div class="team-initial" style="background:${aColor}">${g.aA.slice(0,3)}</div>
+          <span class="team-name-text ${aWin ? "winner" : ""}">${g.away}</span>
+        </div>
+        <div class="match-meta">
+          ${isLive ? `<span class="meta-tag meta-live">LIVE</span>` : ""}
+          ${isSCH ? `<span class="meta-tag meta-soon">Upcoming</span>` : ""}
+          ${isFT ? `<span class="meta-tag">Finished</span>` : ""}
+        </div>
+      </div>`;
+    });
+
+    html += `</div>`;
+  });
+
+  document.getElementById("scores-content").innerHTML = html || `<div class="empty-state">No matches found for this filter.</div>`;
+}
+
+// ─── RENDER STANDINGS ─────────────────────────────────────────────────────────
+function renderStandings() {
+  let html = `<div class="standings-wrapper">`;
+  const leagueKeys = activeLeague === "all" ? Object.keys(LEAGUES) : [activeLeague];
+
+  leagueKeys.forEach(lk => {
+    const L = LEAGUES[lk];
+    if (!L.standings) return;
+
+    html += `<div class="standings-league-title">${L.flag} ${L.name}</div>`;
+    html += `<div class="zone-legend">
+      <div class="zone-legend-item"><div class="zone-box" style="background:var(--accent)"></div> Champions League</div>
+      <div class="zone-legend-item"><div class="zone-box" style="background:#2979ff"></div> Europa League</div>
+      <div class="zone-legend-item"><div class="zone-box" style="background:var(--red)"></div> Relegation</div>
+    </div>`;
+    html += `<div class="standings-table-wrap"><table class="stable">
+      <thead><tr>
+        <th class="rank-col">#</th>
+        <th>Club</th>
+        <th class="num">P</th>
+        <th class="num">W</th>
+        <th class="num">D</th>
+        <th class="num">L</th>
+        <th class="num">GF</th>
+        <th class="num">GA</th>
+        <th class="num">GD</th>
+        <th class="num">Pts</th>
+        <th class="num">Form</th>
+      </tr></thead><tbody>`;
+
+    const total = L.standings.length;
+    L.standings.forEach((s, i) => {
+      const gd = s.gf - s.ga;
+      const played = s.w + s.d + s.l;
+      let zoneClass = "";
+      if (s.r <= 4) zoneClass = "zone-cl";
+      else if (s.r <= 6) zoneClass = "zone-el";
+      else if (s.r >= total - 2) zoneClass = "zone-rel";
+      const rCls = s.r <= 3 ? `rank-${s.r}` : "";
+      const clr = getColor(s.abbr);
+
+      html += `<tr class="${zoneClass}" style="animation-delay:${i*0.02}s">
+        <td><span class="rank-num ${rCls}">${s.r}</span></td>
+        <td>
+          <div class="team-cell">
+            <div class="t-init" style="background:${clr}">${s.abbr.slice(0,3)}</div>
+            <span class="t-name">${s.team}</span>
+          </div>
+        </td>
+        <td class="num">${played}</td>
+        <td class="num">${s.w}</td>
+        <td class="num">${s.d}</td>
+        <td class="num">${s.l}</td>
+        <td class="num">${s.gf}</td>
+        <td class="num">${s.ga}</td>
+        <td class="num" style="color:${gd>0?"var(--accent)":gd<0?"var(--red)":"var(--muted)"}">${gd>0?"+":""}${gd}</td>
+        <td class="pts-col">${s.pts}</td>
+        <td>
+          <div class="form-dots">
+            ${(s.form||[]).map(f=>`<div class="form-dot form-${f}">${f}</div>`).join("")}
+          </div>
+        </td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+  });
+
+  html += `</div>`;
+  document.getElementById("standings-content").innerHTML = html;
+}
+
+// ─── CONTROLS ─────────────────────────────────────────────────────────────────
+function switchMainTab(tab, el) {
+  mainTab = tab;
+  document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+  el.classList.add("active");
+  document.getElementById("panel-scores").style.display = tab === "scores" ? "" : "none";
+  document.getElementById("panel-standings").style.display = tab === "standings" ? "" : "none";
+  if (tab === "standings") renderStandings();
+}
+
+function filterLeague(league, el) {
+  activeLeague = league;
+  document.querySelectorAll(".sidebar-item").forEach(i => i.classList.remove("active"));
+  el.classList.add("active");
+  if (mainTab === "scores") renderScores();
+  else renderStandings();
+}
+
+function setDateFilter(filter, el) {
+  dateFilter = filter;
+  document.querySelectorAll(".date-btn").forEach(b => b.classList.remove("active"));
+  el.classList.add("active");
+  renderScores();
+}
+
+function refreshAll() {
+  const btn = document.getElementById("btn-refresh");
+  btn.disabled = true;
+  btn.textContent = "↻ Loading...";
+  setTimeout(() => {
+    renderScores();
+    renderStandings();
+    countdown = 60;
+    document.getElementById("countdown").textContent = "60";
+    btn.disabled = false;
+    btn.textContent = "↻ Refresh";
+  }, 800);
+}
+
+// ─── AUTO REFRESH COUNTDOWN ───────────────────────────────────────────────────
+function startCountdown() {
+  clearInterval(countdownTimer);
+  countdown = 60;
+  countdownTimer = setInterval(() => {
+    countdown--;
+    const el = document.getElementById("countdown");
+    if (el) el.textContent = countdown;
+    if (countdown <= 0) {
+      countdown = 60;
+      renderScores();
+      if (mainTab === "standings") renderStandings();
+    }
+  }, 1000);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderScores();
+startCountdown();
+</script>
+</body>
+</html>
